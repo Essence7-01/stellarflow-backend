@@ -347,12 +347,24 @@ model Relayer {
   passwordHash    String?
   role            String?  @default("VIEWER")
   lastLoginAt     DateTime?
+  
+  // Ed25519 Key Pair Storage (KMS Envelope Encryption)
+  publicKey              String?   @db.VarChar(64) // Hex-encoded Ed25519 public key (32 bytes)
+  encryptedPrivateKey    String?   @db.Text // AES-256-GCM encrypted private key (hex format: iv+ciphertext+tag)
+  encryptedDek           String?   @db.Text // KMS-encrypted Data Encryption Key (base64)
+  dekVersion             Int?      @default(1) // DEK version for rotation tracking
+  dekEncryptedAt         DateTime? @db.Timestamptz(3) // When current DEK was encrypted by KMS
+  dekRotationScheduledAt DateTime? @db.Timestamptz(3) // When next DEK rotation is scheduled (90 days from dekEncryptedAt)
+  keyGeneratedAt         DateTime? @db.Timestamptz(3) // When the key pair was first generated
+  
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   permissionChanges PermissionChange[]
   sessions          UserSession[]
   registry          RelayerRegistry?
+  
+  @@index([dekRotationScheduledAt])
 }
 
 model RelayerRegistry {
@@ -1176,12 +1188,24 @@ model Relayer {
   passwordHash    String?
   role            String?  @default("VIEWER")
   lastLoginAt     DateTime?
+  
+  // Ed25519 Key Pair Storage (KMS Envelope Encryption)
+  publicKey              String?   @db.VarChar(64) // Hex-encoded Ed25519 public key (32 bytes)
+  encryptedPrivateKey    String?   @db.Text // AES-256-GCM encrypted private key (hex format: iv+ciphertext+tag)
+  encryptedDek           String?   @db.Text // KMS-encrypted Data Encryption Key (base64)
+  dekVersion             Int?      @default(1) // DEK version for rotation tracking
+  dekEncryptedAt         DateTime? @db.Timestamptz(3) // When current DEK was encrypted by KMS
+  dekRotationScheduledAt DateTime? @db.Timestamptz(3) // When next DEK rotation is scheduled (90 days from dekEncryptedAt)
+  keyGeneratedAt         DateTime? @db.Timestamptz(3) // When the key pair was first generated
+  
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   permissionChanges PermissionChange[]
   sessions          UserSession[]
   registry          RelayerRegistry?
+  
+  @@index([dekRotationScheduledAt])
 }
 
 model RelayerRegistry {
