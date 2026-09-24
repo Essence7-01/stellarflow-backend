@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { randomUUID } from "crypto";
 import { encode } from "@msgpack/msgpack";
+import { getApiContentSecurityPolicy } from "../middleware/securityHeadersMiddleware";
 
 interface Session {
   id: string; // connectionSessionId
@@ -50,6 +51,12 @@ export function initSocket(server: import("http").Server): Server {
     // Disable built-in heartbeat to use our custom one as requested
     pingInterval: HEARTBEAT_INTERVAL,
     pingTimeout: HEARTBEAT_TIMEOUT,
+  });
+
+  io.engine.on("initial_headers", (headers) => {
+    headers["content-security-policy"] = getApiContentSecurityPolicy();
+    headers["x-frame-options"] = "DENY";
+    headers["x-content-type-options"] = "nosniff";
   });
 
   io.on("connection", (socket: Socket) => {

@@ -162,4 +162,12 @@ export const securityHeaderPolicies = {
   permissionsPolicy: PERMISSIONS_POLICY,
 };
 
+export function getApiContentSecurityPolicy(
+  env: EnvSource = process.env,
+): string {
+  return Object.entries(buildCspDirectives(API_CSP_DIRECTIVES, env))
+    .map(([directive, values]) => `${directive} ${values.join(" ")}`)
+    .join("; ");
+}
+
 export default securityHeadersMiddleware;

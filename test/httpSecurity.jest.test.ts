@@ -9,19 +9,23 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
 import express from "express";
+import { createServer } from "http";
 import type { Server } from "http";
 import type { AddressInfo } from "net";
+import type { Server as SocketServer } from "socket.io";
 
 import {
   originGuard,
   refreshAllowedOrigins,
 } from "../src/middleware/corsMiddleware";
 import { applyHttpSecurity } from "../src/middleware/httpSecurity";
+import { initSocket } from "../src/lib/socket";
 
 const ALLOWED_ORIGIN = "https://app.stellarflow.io";
 const WILDCARD_ORIGIN = "https://staging.dash.stellarflow.io";
 
 let server: Server;
+let socketServer: SocketServer;
 let baseUrl: string;
 
 beforeAll(async () => {
@@ -36,13 +40,16 @@ beforeAll(async () => {
     res.json({ success: true });
   });
 
-  server = app.listen(0);
+  server = createServer(app);
+  socketServer = initSocket(server);
+  server.listen(0);
   await new Promise((resolve) => server.once("listening", resolve));
   const { port } = server.address() as AddressInfo;
   baseUrl = `http://127.0.0.1:${port}`;
 });
 
 afterAll(async () => {
+  socketServer.close();
   await new Promise((resolve) => server.close(resolve));
   delete process.env.CORS_ALLOWED_ORIGINS;
   delete process.env.CORS_ORIGIN_ENFORCEMENT;
@@ -209,5 +216,25 @@ describe("requests with no Origin header", () => {
     });
 
     expect(res.status).toBe(200);
+  });
+});
+
+describe("WebSocket handshake", () => {
+  it("includes security headers on the Socket.IO polling handshake", async () => {
+    const res = await request("/socket.io/?EIO=4&transport=polling");
+
+    expect(res.status).toBe(200);
+    expectSecurityHeaders(res);
+  });
+});
+
+describe("terminal responses", () => {
+  it("includes security headers on an unmatched route", async () => {
+    const res = await request("/api/v1/does-not-exist", {
+      headers: { Origin: ALLOWED_ORIGIN },
+    });
+
+    expect(res.status).toBe(404);
+    expectSecurityHeaders(res);
   });
 });
