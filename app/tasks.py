@@ -722,3 +722,52 @@ def index_shielded_notes_range(
     """Celery task to index shielded notes in a given ledger range."""
     return asyncio.run(_index_range(start_ledger, end_ledger))
 
+
+
+@celery_app.task(
+    bind=True,
+    base=DatabaseTask,
+    name="app.tasks.auto_rebalance_capital",
+    autoretry_for=(OSError, asyncpg.PostgresError),
+    retry_backoff=True,
+    max_retries=3,
+)
+def auto_rebalance_capital(self: DatabaseTask) -> Dict[str, Any]:
+    """Periodically check allocation drift and execute rebalancing if needed.
+    
+    Returns
+    -------
+    Dict[str, Any]
+        Execution summary with rebalancing_id if executed, or drift status.
+    """
+    return asyncio.run(_auto_rebalance_capital_async())
+
+
+async def _auto_rebalance_capital_async() -> Dict[str, Any]:
+    """Async implementation of automatic capital rebalancing."""
+    from app.db.session import async_session_factory
+    from app.services.capital_rebalancer import create_capital_rebalancer
+    from app.services.nonce_manager import create_relayer_pool
+    from app.services.portfolio_optimizer import create_portfolio_optimizer
+
+    async with async_session_factory() as db:
+        optimizer = create_portfolio_optimizer()
+        relayer_pool = create_relayer_pool()
+        rebalancer = await create_capital_rebalancer(optimizer, relayer_pool)
+
+        rebalancing_id = await rebalancer.check_and_rebalance(db)
+
+        if rebalancing_id:
+            return {
+                "success": True,
+                "rebalancing_executed": True,
+                "rebalancing_id": rebalancing_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        else:
+            return {
+                "success": True,
+                "rebalancing_executed": False,
+                "message": "Drift below threshold; no rebalancing needed",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
