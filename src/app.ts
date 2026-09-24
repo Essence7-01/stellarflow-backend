@@ -44,6 +44,7 @@ import sorobanSimulationRouter from "./routes/sorobanSimulation";
 import sorobanRentEstimateRouter from "./routes/sorobanRentEstimate";
 import remittanceRouter from "./routes/remittance";
 import anchorsRouter from "./routes/anchors";
+import relayerKeysRouter from "./routes/relayerKeys";
 import { sendApiError } from "./lib/apiError.js";
 import metricsRouter from "./routes/metrics";
 
@@ -138,6 +139,12 @@ app.use("/api/v1/price-updates", signatureVerificationMiddleware);
 app.use("/api/v1/price-updates", latencyValidationMiddleware);
 
 app.use("/api/admin", adminMiddleware, adminRateLimitMiddleware, adminRouter);
+app.use(
+  "/api/admin",
+  adminMiddleware,
+  adminRateLimitMiddleware,
+  relayerKeysRouter,
+);
 app.use(
   "/api/admin/system",
   adminMiddleware,

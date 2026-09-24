@@ -49,6 +49,7 @@ import { VolatilityService } from "./services/volatility.service";
 import { ArbitrageScanner } from "./services/arbitrageScanner";
 import { storageMonitorService } from "./services/storageMonitorService";
 import { complianceScreeningWorker } from "./services/complianceScreeningWorker";
+import { startDekRotationJob } from "./jobs/dekRotationJob";
 
 // Load environment variables
 dotenv.config();
@@ -601,6 +602,15 @@ httpServer.listen(PORT, async () => {
       "Storage rent bump service not started:",
       err instanceof Error ? err.message : err,
     );
+  }
+
+  // Start DEK (Data Encryption Key) rotation job for relayer private keys
+  // Rotates encryption keys every 90 days for enhanced security
+  try {
+    startDekRotationJob(); // Runs daily at 2:00 AM UTC
+    console.log(`🔐 DEK rotation job scheduled (daily at 2:00 AM UTC)`);
+  } catch (err) {
+    console.error("Failed to start DEK rotation job:", err);
   }
 
   // Start Volatility Service
