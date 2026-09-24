@@ -1,7 +1,5 @@
-import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import helmet from "helmet";
 import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 
@@ -14,6 +12,8 @@ import { latencyValidationMiddleware } from "./middleware/latencyGuardMiddleware
 import { signatureVerificationMiddleware } from "./middleware/signatureVerificationMiddleware";
 import { maintenanceMiddleware } from "./middleware/maintenanceMiddleware";
 import { rateLimitMiddleware } from "./middleware/rateLimitMiddleware";
+import { graphqlQueryGuard } from "./middleware/graphqlQueryGuard";
+import { applyHttpSecurity } from "./middleware/httpSecurity";
 import {
   tracingMiddleware,
   axiosTracingMiddleware,
@@ -60,43 +60,6 @@ applyHttpSecurity(app);
 
 // Maintenance mode middleware: must be early in the chain
 app.use(maintenanceMiddleware);
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (origin === dashboardUrl) return callback(null, true);
-      return callback(
-        new Error(
-          `CORS policy: Access denied from origin ${origin}. Allowed origin: ${dashboardUrl}`,
-        ),
-      );
-    },
-    credentials: true,
-  }),
-);
-
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https:"],
-        fontSrc: ["'self'", "https:"],
-        connectSrc: ["'self'"],
-        frameAncestors: ["'none'"],
-      },
-    },
-    noSniff: true,
-    frameguard: { action: "deny" },
-    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-    xssFilter: false,
-    hidePoweredBy: true,
-    hsts: { maxAge: 31536000, includeSubDomains: false, preload: false },
-  }),
-);
 
 app.use(express.json());
 
