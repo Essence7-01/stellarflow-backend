@@ -671,3 +671,9 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 from app.models.shielded import MerkleRoot, ShieldedCommitment, SpentNullifier  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Capital Allocation and Rebalancing ORM models
+# ---------------------------------------------------------------------------
+
+from app.models.allocation import CapitalAllocation, RebalancingHistory, VaultStrategy  # noqa: E402
